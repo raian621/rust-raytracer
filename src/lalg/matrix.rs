@@ -114,6 +114,95 @@ impl Mul<Self> for &Matrix<f64> {
   }
 }
 
+impl Matrix<f64> {
+  pub fn identity(dimension: usize) -> Result<Self, String> {
+    let mut result = Self::with_dimensions(dimension, dimension)?;
+
+    for i in 0..dimension {
+      result[i][i] = 1.0;
+    }
+
+    Ok(result)
+  }
+
+  pub fn transpose(&self) -> Self {
+    let mut result = Self::with_dimensions(self.num_cols(), self.num_rows()).unwrap();
+
+    for row in 0..self.num_rows() {
+      for col in 0..self.num_cols() {
+        result[col][row] = self[row][col].clone();
+      }
+    }
+
+    result
+  }
+}
+
+impl Matrix<f64> {
+  pub fn scalar_mul(&self, scalar: f64) -> Matrix<f64> {
+    let mut result = self.clone();
+    
+    for row in 0..self.num_rows() {
+      for col in 0..self.num_cols() {
+        result[row][col] *= scalar;
+      }
+    }
+
+    result
+  }
+
+  pub fn scalar_div(&self, scalar: f64) -> Matrix<f64> {
+    let mut result = self.clone();
+    
+    for row in 0..self.num_rows() {
+      for col in 0..self.num_cols() {
+        result[row][col] /= scalar;
+      }
+    }
+
+    result
+  }
+
+  /*
+   this determinant algorithm gets the upper triangular form
+   of the input matrix and multiplies the diagonal values of
+   the upper triangular matrix to get the determinant
+
+   time ->  O(n^3)
+   space -> O(n^2)
+
+   if we transformed the matrix in-place the space complexity
+   would be O(1) though
+   */
+  pub fn determinant(&self) -> Option<f64> {
+    if self.num_cols() != self.num_rows() {
+      return None;
+    }
+
+    let mut upper_triangular = self.clone();
+    for row in 1..self.num_rows() {
+      for col in 0..row {
+        // avoid divide-by-zero errors
+        if upper_triangular[row][col] == 0.0 {
+          continue;
+        }
+        let factor = upper_triangular[row][col] / upper_triangular[col][col];
+        for k in 0..self.num_cols() {
+          upper_triangular[row][k] -= factor * upper_triangular[col][k];
+        }
+      }
+    }
+    println!("{:?}", upper_triangular);
+
+    let mut det = 1 as f64;
+    for i in 0..self.num_rows() {
+      det *= upper_triangular[i][i];
+    }
+
+    Some(det)
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -229,5 +318,76 @@ mod tests {
     let product = (&mat * &Matrix::from(tuple)).unwrap();
   
     assert_eq!(expected, product);
+  }
+
+  #[test]
+  fn test_transpose() {
+    let mat = Matrix::<f64>::from(vec![
+      vec![1.0, 2.0, 3.0],
+      vec![4.0, 5.0, 6.0],
+      vec![7.0, 8.0, 9.0],
+    ]);
+    let expected = Matrix::<f64>::from(vec![
+      vec![1.0, 4.0, 7.0],
+      vec![2.0, 5.0, 8.0],
+      vec![3.0, 6.0, 9.0],
+    ]);
+    let transpose = mat.transpose();
+
+    assert_eq!(transpose, expected);
+
+    let mat = Matrix::<f64>::from(vec![
+      vec![1.0, 2.0, 3.0, 1.0],
+      vec![4.0, 5.0, 6.0, 2.0],
+      vec![7.0, 8.0, 9.0, 3.0],
+    ]);
+    let expected = Matrix::<f64>::from(vec![
+      vec![1.0, 4.0, 7.0],
+      vec![2.0, 5.0, 8.0],
+      vec![3.0, 6.0, 9.0],
+      vec![1.0, 2.0, 3.0],
+    ]);
+    let transpose = mat.transpose();
+
+    assert_eq!(transpose, expected);
+  }
+
+  #[test]
+  fn test_scalar_mul() {
+    let mat = Matrix::<f64>::from(vec![
+      vec![1.0, 2.0],
+      vec![3.0, 4.0],
+    ]);
+    let product = mat.scalar_mul(2.0);
+    let expected = Matrix::<f64>::from(vec![
+      vec![2.0, 4.0],
+      vec![6.0, 8.0],
+    ]);
+
+    assert_eq!(product, expected);
+  }
+
+  #[test]
+  fn test_determinant() {
+    let mat = Matrix::<f64>::from(vec![
+      vec![-2.0, -8.0,  3.0,  5.0],
+      vec![-3.0,  1.0,  7.0,  3.0],
+      vec![ 1.0,  2.0, -9.0,  6.0],
+      vec![-6.0,  7.0,  7.0, -9.0],
+    ]);
+    let determinant = mat.determinant().unwrap();
+    let expected = -4071 as f64;
+
+    assert_eq!(determinant, expected);
+
+    let mat = Matrix::<f64>::from(vec![
+      vec![ 1.0,  2.0,  6.0],
+      vec![-5.0,  8.0, -4.0],
+      vec![ 2.0,  6.0,  4.0],
+    ]);
+    let determinant = mat.determinant().unwrap();
+    let expected = -196 as f64;
+
+    assert_eq!(determinant, expected);
   }
 }
