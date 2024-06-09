@@ -33,8 +33,8 @@ impl Canvas {
     for x in 0..self.width() {
       for y in 0..self.height() {
         let red = ((self[x][y].r() * 256.0) as u8).to_string();
-        let green = ((self[x][y].r() * 256.0) as u8).to_string();
-        let blue = ((self[x][y].r() * 256.0) as u8).to_string();
+        let green = ((self[x][y].g() * 256.0) as u8).to_string();
+        let blue = ((self[x][y].b() * 256.0) as u8).to_string();
 
         for val in vec![red, green, blue].into_iter() {
           if line_length == 0 {
