@@ -2,8 +2,8 @@ use std::{fs::File, io::{self, Write}};
 
 use crate::lalg::{matrix::Matrix, vector::Vector};
 
-pub type Color = Vector<f32>;
-pub type Canvas = Matrix<Color>;
+pub type Color = Vector<f32, 4>;
+pub type Canvas<const width: usize, const height: usize> = Matrix<Color, width, height>;
 
 impl Color {
   pub fn r(&self) -> f32 { self[0] }
@@ -12,13 +12,13 @@ impl Color {
   pub fn a(&self) -> f32 { self[3] }
 }
 
-impl Canvas {
+impl<const width: usize, const height: usize> Canvas<width, height> {
   pub fn width(&self) ->  usize { self.num_rows() }
   pub fn height(&self) -> usize { self.num_cols() }
 
   pub fn new(width: usize, height: usize) -> Self { 
     Self { 
-      data: vec![vec![Color { data: vec![0 as f32; 3]}; height]; width]
+      data: [[Color { data: [0 as f32; 4]}; height]; width]
     }
   }
 
@@ -55,6 +55,9 @@ impl Canvas {
       }
     }
 
+    if line.len() > 1 {
+      bytes_written += file.write(format!("{}\n", line.join(" ")).as_bytes())?;
+    }
     Ok(bytes_written)
   }
 
