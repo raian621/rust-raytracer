@@ -5,6 +5,7 @@ use lalg::{matrix::Matrix, tuple::Coordinates, vector::Vector};
 
 pub mod lalg;
 pub mod canvas;
+pub mod raytracer;
 
 fn main() {
     let mut canvas = Canvas::new(120, 120);
