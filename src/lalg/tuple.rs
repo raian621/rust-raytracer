@@ -33,7 +33,7 @@ impl<T: Default + Clone> Tuple<T> {
   }
 }
 
-impl <T: Multipliable<T>> Tuple<T> {
+impl<T: Multipliable<T>> Tuple<T> {
   pub fn scalar_mul(&self, scalar: &T) -> Self {    
     let result = self.data.iter().map(|val| *val * *scalar).collect::<Vec<T>>();
     Tuple::from(result)
