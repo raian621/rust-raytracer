@@ -1,45 +1,46 @@
-use std::ops::{Div, Mul};
-
 use super::tuple::Tuple;
 
-pub type Vector<T, const size: usize> = Tuple<T, size>;
+pub type Vector<const SIZE: usize> = Tuple<SIZE>;
 
-impl<T: Clone + Into<f64>, const size: usize> Vector<T, size> {
+impl<const SIZE: usize> Vector<SIZE> {
   pub fn dot(&self, other: &Self) -> f64 {
     let mut product = 0.0;
     for i in 0..self.len() {
-      product = product + self[i].clone().into() * other[i].clone().into();
+      product = product + self[i] * other[i];
     }
 
     product
   }
-
-  pub fn magnitude(&self) -> f64 {
-    let dot: f64 =  self.dot(self).into();
-    dot.sqrt()
-  }
 }
 
-impl<T: Default + Clone + Copy + Div<Output = T> + Mul<Output = T> + Into<f64> + From<f64>, const size: usize> Vector<T, size> {
-  pub fn norm(&self) -> Self {
-    let magnitude = self.magnitude();
-    self.scalar_div(&T::from(magnitude))
-  }
-
-  pub fn cross(&self, other: &Self) -> Option<Vector<f64, size>>{
-    if size < 3 {
+impl<const SIZE: usize> Vector<SIZE> {
+  pub fn cross(&self, other: &Self) -> Option<Vector<SIZE>>{
+    if SIZE < 3 {
       return None;
     }
 
     let mut cross = Vector::with_dimension();
-    cross[0] = self[1].into() * other[2].into()
-             - self[2].into() * other[1].into();
-    cross[1] = self[2].into() * other[0].into()
-             - self[0].into() * other[2].into();
-    cross[2] = self[0].into() * other[1].into()
-             - self[1].into() * other[0].into();
+    cross[0] = self[1] * other[2]
+             - self[2] * other[1];
+    cross[1] = self[2] * other[0]
+             - self[0] * other[2];
+    cross[2] = self[0] * other[1]
+             - self[1] * other[0];
 
     Some(cross)
+  }
+}
+
+impl<const SIZE: usize> Vector<SIZE> {
+  pub fn norm(&self) -> Self {
+    let magnitude = self.magnitude();
+    println!("in norm {}", magnitude);
+    self.scalar_div(&magnitude)
+  }
+
+  pub fn magnitude(&self) -> f64 {
+    let dot: f64 =  self.dot(self);
+    dot.sqrt()
   }
 }
 
@@ -49,8 +50,8 @@ mod tests {
 
   #[test]
   fn test_dot() {
-    let vec1 = Vector::from([1, 2, 3]);
-    let vec2 = Vector::from([2, 3, 4]);
+    let vec1 = Vector::from([1.0, 2.0, 3.0]);
+    let vec2 = Vector::from([2.0, 3.0, 4.0]);
     let expected = 20.0;
     let dot = vec1.dot(&vec2);
 
@@ -59,7 +60,7 @@ mod tests {
 
   #[test]
   fn test_magnitude() {
-    let vec1 = Vector::from([1, 2, 3]);
+    let vec1 = Vector::from([1.0, 2.0, 3.0]);
     let expected = (14.0 as f64).sqrt();
     let magnitude = vec1.magnitude();
 

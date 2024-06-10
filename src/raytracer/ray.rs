@@ -4,8 +4,8 @@ use super::intersection::Intersection;
 
 #[derive(Debug)]
 pub struct Ray {
-  pub origin: Vector<f64, 4>,
-  pub direction: Vector<f64, 4>
+  pub origin: Vector<4>,
+  pub direction: Vector<4>
 }
 
 impl Ray {
@@ -16,19 +16,22 @@ impl Ray {
     }
   }
 
-  pub fn with(origin: Vector<f64, 4>, direction: Vector<f64, 4>) -> Ray {
+  pub fn with(origin: Vector<4>, direction: Vector<4>) -> Ray {
     Ray { origin, direction }
   }
 
-  pub fn get_point(&self, t: f64) -> Vector<f64, 4> {
-    (&self.origin + &self.direction.scalar_mul(&t)).unwrap()
+  pub fn get_point(&self, t: f64) -> Vector<4> {
+    &self.origin + &self.direction.scalar_mul(&t)
   }
 
-  pub fn transform(&self, transform: &Matrix<f64, 4, 4>) -> Self {
-    let origin = transform * &Matrix::<f64, 4, 1>::from(self.origin.clone());
+  pub fn transform(&self, transform: &Matrix<4, 4>) -> Self {
+    let origin = transform * &Matrix::from(self.origin.clone());
     let direction = transform * &Matrix::from(self.direction.clone());
 
-    Ray{ origin: Vector::from(origin.unwrap().transpose()[0].clone()), direction: Vector::from(direction.unwrap().transpose()[0].clone())}
+    println!("{:?}", origin);
+    println!("{:?}", direction);
+
+    Ray{ origin: Vector::from(origin.transpose::<1, 4>()[0].clone()), direction: Vector::from(direction.transpose::<1, 4>()[0].clone())}
   }
 }
 

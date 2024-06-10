@@ -4,9 +4,9 @@ use super::{intersection::Intersection, ray::{Intersects, Ray}};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Sphere {
-  pub origin: Vector<f64, 4>,
+  pub origin: Vector<4>,
   pub radius: f64,
-  pub transform: Matrix<f64, 4, 4>
+  pub transform: Matrix<4, 4>
 }
 
 impl Sphere {
@@ -14,26 +14,27 @@ impl Sphere {
     Self{ origin: Vector::with_dimension(), radius: 0.0, transform: Matrix::identity().unwrap() }
   }
 
-  pub fn with(origin: Vector<f64, 4>, radius: f64) -> Self {
+  pub fn with(origin: Vector<4>, radius: f64) -> Self {
     Self{ origin, radius, transform: Matrix::identity().unwrap() }
   }
 
-  pub fn normal_at(&self, point: &Vector<f64, 4>) -> Vector<f64, 4> {
-    let object_point = (&(self.transform.inverse()).unwrap() * &Matrix::from(point.clone())).unwrap();
-    let object_normal = (&object_point - &Matrix::from(self.origin.clone())).unwrap();
-    let world_point = (&(&(self.transform.inverse()).unwrap()).transpose() * &object_normal).unwrap();
-    let mut result = Vector::from(world_point.transpose()[0].clone());
+  pub fn normal_at(&self, point: &Vector<4>) -> Vector<4> {
+    let object_point = &(self.transform.inverse()).unwrap() * &Matrix::from(point.clone());
+    let object_normal = &object_point - &Matrix::from(self.origin.clone());
+    let world_point: Matrix<4, 1> = &(&(self.transform.inverse()).unwrap()).transpose() * &object_normal;
+    let mut result = Vector::from(world_point.transpose::<1,4>()[0].clone());
 
     result[3] = 0.0;
 
-    result
+    result.norm()
+    // (point - &self.origin).norm()
   }
 }
 
 impl Intersects<Self> for Sphere {
-  fn intersections<'a>(&'a self, ray: &Ray) -> Vec<Intersection<'a, Sphere>> {    
-    let transformed_ray = ray.transform(&self.transform.inverse().unwrap());
-    let sphere_to_ray = (&transformed_ray.origin - &self.origin).unwrap();
+  fn intersections<'a>(&'a self, ray: &Ray) -> Vec<Intersection<'a, Sphere>> {
+    let transformed_ray = ray.transform(&self.transform);
+    let sphere_to_ray = &transformed_ray.origin - &self.origin;
     let a = transformed_ray.direction.dot(&transformed_ray.direction);
     let b = 2.0 * transformed_ray.direction.dot(&sphere_to_ray);
     let c = sphere_to_ray.dot(&sphere_to_ray) - 1.0;
@@ -43,7 +44,7 @@ impl Intersects<Self> for Sphere {
       return Vec::<Intersection<'a, Sphere>>::with_capacity(0);
     }
 
-    [
+    vec![
       Intersection{t: (-b - discriminant.sqrt()) / (2.0*a), object: self},
       Intersection{t: (-b + discriminant.sqrt()) / (2.0*a), object: self}
     ]
@@ -89,7 +90,7 @@ mod tests {
       Intersection{ t: 5.0, object: &sphere },
     ];
 
-    // assert_eq!(intersections, expected);
+    assert_eq!(intersections, expected);
 
     // ray misses
     let ray = Ray{
@@ -97,8 +98,8 @@ mod tests {
       direction: Vector::from([0.0, 0.0, 1.0, 0.0]),
     };
     let intersections = sphere.intersections(&ray);
-    // let expected = vec![];
+    let expected = vec![];
 
-    // assert_eq!(intersections, expected);
+    assert_eq!(intersections, expected);
   }
 }

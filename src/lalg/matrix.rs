@@ -1,24 +1,24 @@
 use std::ops::{Add, Index, IndexMut, Mul, Sub};
 
-use super::{traits::{Addable, Subtractable}, tuple::Tuple};
+use super::{tuple::Tuple, util::cofactor};
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Matrix<T, const rows: usize, const cols: usize> {
-  pub data: [[T; cols]; rows]
+pub struct Matrix<const ROWS: usize, const COLS: usize> {
+  pub data: [[f64; COLS]; ROWS]
 }
 
-impl<T, const rows: usize, const cols: usize> Matrix<T, rows, cols> {
+impl<const ROWS: usize, const COLS: usize> Matrix<ROWS, COLS> {
   pub fn num_rows(&self) -> usize { self.data.len() }
   pub fn num_cols(&self) -> usize { self.data[0].len() }
 }
 
-impl<T, const rows: usize, const cols: usize> From<[[T; cols]; rows]> for Matrix<T, rows, cols> {
-  fn from(data: [[T; cols]; rows]) -> Matrix<T, rows, cols> { Matrix{ data }}
+impl<const ROWS: usize, const COLS: usize> From<[[f64; COLS]; ROWS]> for Matrix<ROWS, COLS> {
+  fn from(data: [[f64; COLS]; ROWS]) -> Matrix<ROWS, COLS> { Matrix{ data }}
 }
 
-impl<T: Clone + Copy + Default, const rows: usize> From<Tuple<T, rows>> for Matrix<T, rows, 1> {
-  fn from(data: Tuple<T, rows>) -> Matrix<T, rows, 1> {
-    let mut result = Matrix::<T, rows, 1>::with_dimensions().unwrap();
+impl<const ROWS: usize> From<Tuple<ROWS>> for Matrix<ROWS, 1> {
+  fn from(data: Tuple<ROWS>) -> Matrix<ROWS, 1> {
+    let mut result = Matrix::<ROWS, 1>::with_dimensions().unwrap();
     for (i, val) in data.data.iter().enumerate() {
       result[i][0] = val.clone();
     }
@@ -27,109 +27,96 @@ impl<T: Clone + Copy + Default, const rows: usize> From<Tuple<T, rows>> for Matr
   }
 }
 
-impl<T: Default + Clone + Copy, const rows: usize, const cols: usize> Matrix<T, rows, cols> {
-  pub fn new() -> Matrix<T, rows, cols> { Matrix{ data: [[T::default(); cols]; rows]}}
+impl<const ROWS: usize, const COLS: usize> Matrix<ROWS, COLS> {
+  pub fn new() -> Matrix<ROWS, COLS> { Matrix{ data: [[f64::default(); COLS]; ROWS]}}
   
-  pub fn with_dimensions<const drows: usize, const dcols: usize>() -> Result<Matrix<T, drows, dcols>, String> {
-    if drows == 0 {
+  pub fn with_dimensions<const DROWS: usize, const DCOLS: usize>() -> Result<Matrix<DROWS, DCOLS>, String> {
+    if DROWS == 0 {
       return Err("can't create a matrix with 0 rows".to_string());
     }
 
     Ok(Matrix::from(
-      [[T::default(); dcols]; drows]
+      [[f64::default(); DCOLS]; DROWS]
     ))
   }
 }
 
-impl<T, const rows: usize, const cols: usize> Index<usize> for Matrix<T, rows, cols> {
-  type Output = [T; cols];
+impl<const ROWS: usize, const COLS: usize> Index<usize> for Matrix<ROWS, COLS> {
+  type Output = [f64; COLS];
 
   fn index(&self, index: usize) -> &Self::Output { &self.data[index] }
 }
 
-impl<T, const rows: usize, const cols: usize> IndexMut<usize> for Matrix<T, rows, cols> {
-  fn index_mut<'a>(&'a mut self, index: usize) -> &'a mut [T; cols] { &mut self.data[index] }
+impl<const ROWS: usize, const COLS: usize> IndexMut<usize> for Matrix<ROWS, COLS> {
+  fn index_mut<'a>(&'a mut self, index: usize) -> &'a mut [f64; COLS] { &mut self.data[index] }
 }
 
-impl<T: Addable<T> + Copy, const rows: usize, const cols: usize> Add for &Matrix<T, rows, cols> {
-  type Output = Option<Matrix<T, rows, cols>>;
+impl<const ROWS: usize, const COLS: usize> Add for &Matrix<ROWS, COLS> {
+  type Output = Matrix<ROWS, COLS>;
 
   fn add(self, other: Self) -> Self::Output {
-    if self.data.len() != other.data.len() {
-      return None;
-    }
+    let mut matrix = Matrix::<ROWS, COLS>::with_dimensions::<ROWS, COLS>().unwrap();
 
-    let mut matrix = Matrix::with_dimensions::<rows, cols>().unwrap();
-
-    for row in 0..matrix.num_rows() {
-      for col in 0..matrix.num_cols() {
+    for row in 0..ROWS {
+      for col in 0..COLS {
         matrix[row][col] = self[row][col] + other[row][col];
       }
     }
 
-    Some(matrix)
+    matrix
   }
 }
 
-impl<T: Subtractable<T> + Copy, const rows: usize, const cols: usize> Sub for &Matrix<T, rows, cols> {
-  type Output = Option<Matrix<T, rows, cols>>;
+impl<const ROWS: usize, const COLS: usize> Sub for &Matrix<ROWS, COLS> {
+  type Output = Matrix<ROWS, COLS>;
 
   fn sub(self, other: Self) -> Self::Output {
-    if self.data.len() != other.data.len() {
-      return None;
-    }
+    let mut matrix: Matrix<ROWS, COLS> = Matrix::<ROWS, COLS>::with_dimensions::<ROWS, COLS>().unwrap();
 
-    let mut matrix: Matrix<T, rows, cols> = Matrix::with_dimensions::<rows, cols>().unwrap();
-
-    for row in 0..matrix.num_rows() {
-      for col in 0..matrix.num_cols() {
+    for row in 0..ROWS {
+      for col in 0..COLS {
         matrix[row][col] = self[row][col] - other[row][col];
       }
     }
 
-    Some(matrix)
+    matrix
   }
 }
 
-impl<const rows: usize, const cols: usize, const other_cols: usize> Mul<&Matrix<f64, cols, other_cols>> for &Matrix<f64, rows, cols> {
-  type Output = Result<Matrix<f64, rows, other_cols>, String>;
+impl<const ROWS: usize, const COLS: usize, const OTHER_COLS: usize> Mul<&Matrix<COLS, OTHER_COLS>> for &Matrix<ROWS, COLS> {
+  type Output = Matrix<ROWS, OTHER_COLS>;
 
-  fn mul(self, other: &Matrix<f64, cols, other_cols>) -> Self::Output {
-    let (rows, cols, shared) = (self.num_rows(), other.num_cols(), self.num_cols());
-    if shared != other.num_rows() {
-      return Err("the number of columns in the len matrix must be the same as the number of rows in the right matrix".to_string());
-    }
+  fn mul(self, other: &Matrix<COLS, OTHER_COLS>) -> Self::Output {
+    let mut result = Matrix::<ROWS, OTHER_COLS>::with_dimensions().unwrap();
 
-    let mut result = Matrix::with_dimensions()?;
-
-    for m in 0..rows {
-      for n in 0..cols {
-        for k in 0..shared {
+    for m in 0..ROWS {
+      for n in 0..OTHER_COLS {
+        for k in 0..COLS {
           result[m][n] += self[m][k] * other[k][n];
         }
       }
     }
 
-    Ok(result)
+    result
   }
 }
 
-impl<const rows: usize, const cols: usize> Matrix<f64, rows, cols> {
+impl<const ROWS: usize, const COLS: usize> Matrix<ROWS, COLS> {
   pub fn identity() -> Result<Self, String> {
-    let mut result = Self::with_dimensions::<rows, cols>()?;
+    let mut result = Self::with_dimensions::<ROWS, COLS>()?;
 
-    for i in 0..rows {
+    for i in 0..ROWS {
       result[i][i] = 1.0;
     }
 
     Ok(result)
   }
 
-  pub fn transpose<const trows: usize, const tcols: usize>(&self) -> Matrix<f64, trows, tcols> {
-    let mut result = Self::with_dimensions::<trows, tcols>().unwrap();
+  pub fn transpose<const TROWS: usize, const TCOLS: usize>(&self) -> Matrix<TROWS, TCOLS> {
+    let mut result = Self::with_dimensions::<TROWS, TCOLS>().unwrap();
 
-    for row in 0..self.num_rows() {
-      for col in 0..self.num_cols() {
+    for row in 0..ROWS {
+      for col in 0..COLS {
         result[col][row] = self[row][col].clone();
       }
     }
@@ -138,12 +125,12 @@ impl<const rows: usize, const cols: usize> Matrix<f64, rows, cols> {
   }
 }
 
-impl<const rows: usize, const cols: usize> Matrix<f64, rows, cols> {
-  pub fn scalar_mul(&self, scalar: f64) -> Matrix<f64, rows, cols> {
+impl<const ROWS: usize, const COLS: usize> Matrix<ROWS, COLS> {
+  pub fn scalar_mul(&self, scalar: f64) -> Matrix<ROWS, COLS> {
     let mut result = self.clone();
     
-    for row in 0..self.num_rows() {
-      for col in 0..self.num_cols() {
+    for row in 0..ROWS {
+      for col in 0..COLS {
         result[row][col] *= scalar;
       }
     }
@@ -151,11 +138,11 @@ impl<const rows: usize, const cols: usize> Matrix<f64, rows, cols> {
     result
   }
 
-  pub fn scalar_div(&self, scalar: f64) -> Matrix<f64, rows, cols> {
+  pub fn scalar_div(&self, scalar: f64) -> Matrix<ROWS, COLS> {
     let mut result = self.clone();
     
-    for row in 0..self.num_rows() {
-      for col in 0..self.num_cols() {
+    for row in 0..ROWS {
+      for col in 0..COLS {
         result[row][col] /= scalar;
       }
     }
@@ -175,71 +162,30 @@ impl<const rows: usize, const cols: usize> Matrix<f64, rows, cols> {
    would be O(1) though
    */
   pub fn determinant(&self) -> Result<f64, String> {
-    if self.num_cols() != self.num_rows() {
+    if COLS != ROWS {
       return Err("cannot get the determinant of a non-square matrix".to_string());
     }
 
     let mut upper_triangular = self.clone();
-    for row in 1..self.num_rows() {
+    for row in 1..ROWS {
       for col in 0..row {
         // avoid divide-by-zero errors
         if upper_triangular[row][col] == 0.0 || upper_triangular[col][col] == 0.0 {
           continue;
         }
         let factor = upper_triangular[row][col] / upper_triangular[col][col];
-        for k in 0..self.num_cols() {
+        for k in 0..COLS {
           upper_triangular[row][k] -= factor * upper_triangular[col][k];
         }
       }
     }
 
     let mut det = 1 as f64;
-    for i in 0..self.num_rows() {
+    for i in 0..ROWS {
       det *= upper_triangular[i][i];
     }
 
     Ok(det)
-  }
-
-  pub fn submatrix<const subrows: usize, const subcols: usize>(&self, row: usize, col: usize) -> Result<Matrix<f64, subrows, subcols>, String> {
-    if row >= self.num_rows() || col >= self.num_cols() {
-      return Err(format!("submatrix does not exist for row={}, col={}", row, col));
-    }
-
-    let mut submatrix = Matrix::<f64, subrows, subcols>::with_dimensions().unwrap();
-    let mut subrow = 0;
-
-    for r in 0..self.num_rows() {
-      if r == row {
-        continue;
-      }
-      let mut subcol = 0;
-
-      for c in 0..self.num_cols() {
-        if c == col {
-          continue;
-        }
-
-        submatrix[subrow][subcol] = self[r][c];
-        subcol += 1;
-      }
-
-      subrow += 1;
-    }
-
-    Ok(submatrix)
-  }
-
-  pub fn minor(&self, row: usize, col: usize) -> Result<f64, String> {
-    let submatrix = self.submatrix(row, col)?;
-    Ok(submatrix.determinant()?)
-  }
-
-  pub fn cofactor(&self, row: usize, col: usize) -> Result<f64, String> {
-    match (row + col) % 2 {
-      0 => Ok(self.minor(row, col)?),
-      _ => Ok(-self.minor(row, col)?)
-    }
   }
 
   pub fn inverse(&self) -> Result<Self, String> {
@@ -248,10 +194,11 @@ impl<const rows: usize, const cols: usize> Matrix<f64, rows, cols> {
       return Err("cannot invert a matrix if it's determinant is zero".to_string());
     }
 
-    let mut result = self.transpose::<rows, cols>();
-    for row in 0..self.num_rows() {
-      for col in 0..self.num_cols() {
-        result[col][row] = self.cofactor(row, col)? / determinant;
+    let mut result = self.transpose::<ROWS, COLS>();    
+    let matrix = self.data.iter().map(|row| Vec::from(row.clone())).collect::<Vec<Vec<f64>>>();
+    for row in 0..ROWS {
+      for col in 0..COLS {
+        result[col][row] = cofactor(&matrix, row, col)? / determinant;
       }
     }
 
@@ -259,7 +206,7 @@ impl<const rows: usize, const cols: usize> Matrix<f64, rows, cols> {
   }
 }
 
-impl Matrix<f64, 4, 4> {
+impl Matrix<4, 4> {
   pub fn translating(x: f64, y: f64, z: f64) -> Self {
     Self::from([
       // [1.0, 0.0, 0.0, x],
@@ -319,27 +266,27 @@ impl Matrix<f64, 4, 4> {
   }
 
   pub fn translate(&self, x: f64, y: f64, z: f64) -> Self {
-    (&Self::translating(x, y, z) * self).unwrap()
+    &Self::translating(x, y, z) * self
   }
 
   pub fn scale(&self, x: f64, y: f64, z: f64) -> Self {
-    (&Self::scaling(x, y, z) * self).unwrap()
+    &Self::scaling(x, y, z) * self
   }
 
   pub fn rotate_x(&self, r: f64) -> Self {
-    (&Self::rotation_x(r) * self).unwrap()
+    &Self::rotation_x(r) * self
   }
 
   pub fn rotate_y(&self, r: f64) -> Self {
-    (&Self::rotation_y(r) * self).unwrap()
+    &Self::rotation_y(r) * self
   }
 
   pub fn rotate_z(&self, r: f64) -> Self {
-    (&Self::rotation_z(r) * self).unwrap()
+    &Self::rotation_z(r) * self
   }
 
   pub fn shear(&self, xy: f64, xz: f64, yx: f64, yz: f64, zx: f64, zy: f64) -> Self {
-    (&Self::shearing(xy, xz, yx, yz, zx, zy) * self).unwrap()
+    &Self::shearing(xy, xz, yx, yz, zx, zy) * self
   }
 }
 
@@ -351,7 +298,7 @@ mod tests {
   fn test_with_dimensions() {
     const ROWS: usize = 2;
     const COLS: usize = 3;
-    let result = Matrix::<i32, ROWS, COLS>::with_dimensions();
+    let result = Matrix::<ROWS, COLS>::with_dimensions::<ROWS, COLS>();
 
     let matrix = match result {
       Ok(val) => val,
@@ -360,7 +307,7 @@ mod tests {
     
     for row in 0..ROWS {
       for col in 0..COLS {
-        assert_eq!(matrix[row][col], 0);
+        assert_eq!(matrix[row][col], 0.0);
       }
     }
   }
@@ -368,24 +315,20 @@ mod tests {
   #[test]
   fn test_add() {
     let mat1 = Matrix::from([
-      [1, 2, 3],
-      [4, 5, 6],
-      [7, 8, 9],
+      [1.0, 2.0, 3.0],
+      [4.0, 5.0, 6.0],
+      [7.0, 8.0, 9.0],
     ]);
     let mat2 = Matrix::from([
-      [9, 8, 7],
-      [6, 5, 4],
-      [3, 2, 1],
+      [9.0, 8.0, 7.0],
+      [6.0, 5.0, 4.0],
+      [3.0, 2.0, 1.0],
     ]);
-    let result = &mat1 + &mat2;
-    let sum = match result {
-      Some(val) => val,
-      None => panic!()
-    };
+    let sum = &mat1 + &mat2;
     let expected = Matrix::from([
-      [10, 10, 10],
-      [10, 10, 10],
-      [10, 10, 10],
+      [10.0, 10.0, 10.0],
+      [10.0, 10.0, 10.0],
+      [10.0, 10.0, 10.0],
     ]);
 
     assert_eq!(sum, expected);
@@ -394,24 +337,20 @@ mod tests {
   #[test]
   fn test_sub() {
     let mat1 = Matrix::from([
-      [1, 2, 3],
-      [4, 5, 6],
-      [7, 8, 9],
+      [1.0, 2.0, 3.0],
+      [4.0, 5.0, 6.0],
+      [7.0, 8.0, 9.0],
     ]);
     let mat2 = Matrix::from([
-      [9, 8, 7],
-      [6, 5, 4],
-      [3, 2, 1],
+      [9.0, 8.0, 7.0],
+      [6.0, 5.0, 4.0],
+      [3.0, 2.0, 1.0],
     ]);
-    let result = &mat1 - &mat2;
-    let diff = match result {
-      Some(val) => val,
-      None => panic!()
-    };
+    let diff = &mat1 - &mat2;
     let expected = Matrix::from([
-      [-8, -6, -4],
-      [-2, 0, 2],
-      [4, 6, 8],
+      [-8.0, -6.0, -4.0],
+      [-2.0,  0.0,  2.0],
+      [ 4.0,  6.0,  8.0],
     ]);
 
     assert_eq!(diff, expected);
@@ -437,10 +376,7 @@ mod tests {
       [40.0, 58.0, 110.0, 102.0],
       [16.0, 26.0,  46.0,  42.0],
     ]);
-    let mul = match &mat1 * &mat2 {
-      Err(why) => panic!("{}", why),
-      Ok(val) => val
-    };
+    let mul = &mat1 * &mat2;
 
     assert_eq!(expected, mul);
   }
@@ -455,7 +391,7 @@ mod tests {
     ]);
     let tuple = Tuple::from([1.0, 2.0, 3.0, 1.0]);
     let expected = Matrix::from(Tuple::from([18.0, 24.0, 33.0, 1.0]));
-    let product = (&mat * &Matrix::<f64, 4, 1>::from(tuple)).unwrap();
+    let product = &mat * &Matrix::from(tuple);
   
     assert_eq!(expected, product);
   }
@@ -533,20 +469,41 @@ mod tests {
 
   #[test]
   fn test_inverse() {
-    let mat = Matrix::<f64, 4, 4>::from([
+    let mat = Matrix::from([
       [-5.0,  2.0,  6.0, -8.0],
       [ 1.0, -5.0,  1.0,  8.0],
       [ 7.0,  7.0, -6.0, -7.0],
       [ 1.0, -3.0,  7.0,  4.0],
     ]);
-    let expected = Matrix::<f64, 4, 4>::from([
+    let expected = Matrix::from([
       [ 0.21805,  0.45113,  0.24060, -0.04511],
       [-0.80827, -1.45677, -0.44361,  0.52068],
       [-0.07895, -0.22368, -0.05263,  0.19737],
       [-0.52256, -0.81391, -0.30075,  0.30639],
     ]);
     let inverse = mat.inverse().unwrap();
-    let diff = (&inverse - &expected).unwrap();
+    let diff = &inverse - &expected;
+    for row in 0..inverse.num_rows() {
+      for col in 0..inverse.num_cols() {
+        assert!(diff[row][col].abs() < 1e-5)
+      }
+    }
+
+    let mat = Matrix::from([
+      [1.0, 0.0, 0.0, 0.0],
+      [0.0, 1.0, 0.0, 0.0],
+      [0.0, 0.0, 1.0, 0.0],
+      [0.0, 0.0, 0.0, 1.0]
+    ]);
+    let expected = Matrix::from([
+      [1.0, 0.0, 0.0, 0.0],
+      [0.0, 1.0, 0.0, 0.0],
+      [0.0, 0.0, 1.0, 0.0],
+      [0.0, 0.0, 0.0, 1.0]
+    ]);
+    let inverse = mat.inverse().unwrap();
+    println!("{:?}", inverse);
+    let diff = &inverse - &expected;
     for row in 0..inverse.num_rows() {
       for col in 0..inverse.num_cols() {
         assert!(diff[row][col].abs() < 1e-5)
