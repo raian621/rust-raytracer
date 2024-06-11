@@ -29,7 +29,7 @@ impl<const SIZE: usize> Vector<SIZE> {
   }
 
   pub fn reflect(&self, normal: &Self) -> Self {
-    (self * normal).scalar_mul(&(2.0 * self.dot(normal)))
+    self - &normal.scalar_mul(&(2.0 * self.dot(normal)))
   }
 }
 

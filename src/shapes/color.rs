@@ -1,28 +1,73 @@
-use crate::lalg::vector::Vector;
+use std::ops::{Add, Div, Mul, Sub};
 
-pub type Color<const SIZE: usize> = Vector<SIZE>;
-
-impl Color<3> {
-  pub fn r(&self) -> f64 { self[0] }
-  pub fn g(&self) -> f64 { self[1] }
-  pub fn b(&self) -> f64 { self[2] }
+#[derive(Clone, Debug, PartialEq)]
+pub struct Color {
+  pub r: f64,
+  pub g: f64,
+  pub b: f64,
+  pub a: f64
 }
 
-impl Color<4> {
-  pub fn r(&self) -> f64 { self[0] }
-  pub fn g(&self) -> f64 { self[1] }
-  pub fn b(&self) -> f64 { self[2] }
-  pub fn a(&self) -> f64 { self[3] }
-}
-
-impl Default for Color<3> {
+impl Default for Color {
   fn default() -> Self {
-    Self{ data: [1.0, 1.0, 1.0]}
+    Self{ r: 1.0, g: 1.0, b: 1.0, a: 0.0 }
   }
 }
 
-impl Color<3> {
-  pub fn color(r: f64, g: f64, b: f64) -> Self { Self{ data: [r, g, b] }}
+impl Add<Self> for &Color {
+  type Output = Color;
+
+  fn add(self, other: Self) -> Self::Output {
+    Color{ 
+      r: self.r + other.r,
+      g: self.g + other.g,
+      b: self.b + other.b,
+      a: self.a + other.a
+    }
+  }
+}
+
+impl Sub<Self> for &Color {
+  type Output = Color;
+
+  fn sub(self, other: Self) -> Self::Output {
+    Color{ 
+      r: self.r - other.r,
+      g: self.g - other.g,
+      b: self.b - other.b,
+      a: self.a - other.a
+    }
+  }
+}
+
+impl Mul<Self> for &Color {
+  type Output = Color;
+
+  fn mul(self, other: Self) -> Self::Output {
+    Color{ 
+      r: self.r * other.r,
+      g: self.g * other.g,
+      b: self.b * other.b,
+      a: self.a * other.a
+    }
+  }
+}
+
+impl Div<Self> for &Color {
+  type Output = Color;
+
+  fn div(self, other: Self) -> Self::Output {
+    Color{ 
+      r: self.r / other.r,
+      g: self.g / other.g,
+      b: self.b / other.b,
+      a: self.a / other.a
+    }
+  }
+}
+
+impl Color {
+  pub fn color(r: f64, g: f64, b: f64) -> Self { Self{ r, g, b, a: 1.0 }}
 
   pub fn red() -> Self     { Self::color(1.0, 0.0, 0.0)}
   pub fn yellow() -> Self  { Self::color(1.0, 1.0, 0.0)}
