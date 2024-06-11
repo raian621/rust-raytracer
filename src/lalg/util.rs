@@ -1,13 +1,8 @@
-use std::{fmt::Debug, ops::{Add, Div, Mul, Neg, Sub}};
-
-pub trait Determinant<T>: Default + Copy + Add<Output = T> + Sub<Output = T> + Mul<Output = T> + Div<Output = T> + From<i32> + PartialEq<T>{}
-impl<T> Determinant<T> for T where T: Default + Copy + Add<Output = T> + Sub<Output = T> + Mul<Output = T> + Div<Output = T> + From<i32> + PartialEq<T>{}
-
-pub fn submatrix<T: Default + Clone>(
-  matrix: &Vec<Vec<T>>,
+pub fn submatrix(
+  matrix: &Vec<Vec<f64>>,
   row: usize,
   col: usize
-) -> Result<Vec<Vec<T>>, String> {
+) -> Result<Vec<Vec<f64>>, String> {
   let rows = matrix.len();
   let cols = matrix[0].len();
 
@@ -15,7 +10,7 @@ pub fn submatrix<T: Default + Clone>(
     return Err(format!("cannot make a submatrix for row {} and col {} from matrix with {} rows and {} cols", row, col, rows, cols));
   }
 
-  let mut submat = vec![vec![T::default(); matrix[0].len()-1]; matrix.len()-1];
+  let mut submat = vec![vec![0.0; matrix[0].len()-1]; matrix.len()-1];
   let mut subrow = 0;
 
   for r in 0..rows {
@@ -38,18 +33,18 @@ pub fn submatrix<T: Default + Clone>(
 }
 
 
-pub fn cofactor<T: Determinant<T> + Neg<Output = T> + Debug>(matrix: &Vec<Vec<T>>, row: usize, col: usize) -> Result<T, String> {
+pub fn cofactor(matrix: &Vec<Vec<f64>>, row: usize, col: usize) -> Result<f64, String> {
   match (row + col) % 2 {
     0 => Ok(minor(matrix, row, col)?),
     _ => Ok(-minor(matrix, row, col)?)
     }
 }
-pub fn minor<T: Determinant<T> + Debug>(matrix: &Vec<Vec<T>>, row: usize, col: usize) -> Result<T, String> {
+pub fn minor(matrix: &Vec<Vec<f64>>, row: usize, col: usize) -> Result<f64, String> {
   let submat = submatrix(matrix, row, col)?;
   Ok(determinant(&submat)?)
 }
 
-pub fn determinant<T: Determinant<T>>(matrix: &Vec<Vec<T>>) -> Result<T, String> {
+pub fn determinant(matrix: &Vec<Vec<f64>>) -> Result<f64, String> {
   let rows = matrix.len();
   let cols = matrix[0].len();
   if rows != cols {
@@ -57,20 +52,34 @@ pub fn determinant<T: Determinant<T>>(matrix: &Vec<Vec<T>>) -> Result<T, String>
   }
 
   let mut upper_triangular = matrix.clone();
+  // ensure the diagonal has non-zero values
+  for i in 0..rows {
+    if upper_triangular[i][i] != 0.0 {
+      continue;
+    }
+    for j in i+1..rows {
+      if upper_triangular[j][i] == 0.0 {
+        continue;
+      }
+      upper_triangular.swap(i, j);
+      break;
+    }
+  }
+
   for row in 1..rows {
     for col in 0..row {
       // avoid divide-by-zero errors
-      if upper_triangular[row][col] == T::default() || upper_triangular[col][col] == T::default() {
+      if upper_triangular[row][col] == 0.0 || upper_triangular[col][col] == 0.0 {
         continue;
       }
       let factor = upper_triangular[row][col] / upper_triangular[col][col];
       for k in 0..cols {
-        upper_triangular[row][k] = upper_triangular[row][k] - factor * upper_triangular[col][k];
+        upper_triangular[row][k] -= factor * upper_triangular[col][k];
       }
     }
   }
 
-  let mut det = T::default() + T::from(1);
+  let mut det = 1.0;
   for i in 0..rows {
     det = det * upper_triangular[i][i];
   }

@@ -1,4 +1,4 @@
-use super::tuple::Tuple;
+use super::{matrix::Matrix, tuple::Tuple};
 
 pub type Vector<const SIZE: usize> = Tuple<SIZE>;
 
@@ -11,9 +11,7 @@ impl<const SIZE: usize> Vector<SIZE> {
 
     product
   }
-}
 
-impl<const SIZE: usize> Vector<SIZE> {
   pub fn cross(&self, other: &Self) -> Option<Vector<SIZE>>{
     if SIZE < 3 {
       return None;
@@ -29,18 +27,32 @@ impl<const SIZE: usize> Vector<SIZE> {
 
     Some(cross)
   }
+
+  pub fn reflect(&self, normal: &Self) -> Self {
+    (self * normal).scalar_mul(&(2.0 * self.dot(normal)))
+  }
 }
 
 impl<const SIZE: usize> Vector<SIZE> {
   pub fn norm(&self) -> Self {
     let magnitude = self.magnitude();
-    println!("in norm {}", magnitude);
     self.scalar_div(&magnitude)
   }
 
   pub fn magnitude(&self) -> f64 {
     let dot: f64 =  self.dot(self);
     dot.sqrt()
+  }
+}
+
+impl<const SIZE: usize> From<&Matrix<SIZE, 1>> for Vector<SIZE> {
+  fn from(matrix: &Matrix<SIZE, 1>) -> Self {
+    let mut res = Self::new();
+    for i in 0..SIZE {
+      res[i] = matrix[i][0];
+    }
+
+    res
   }
 }
 

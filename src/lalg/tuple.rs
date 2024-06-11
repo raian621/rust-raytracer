@@ -24,8 +24,6 @@ impl<const SIZE: usize> Tuple<SIZE> {
     Self { data: [0.0; SIZE] }
   }
 
-  pub fn from(data: [f64; SIZE]) -> Self { Self { data: data.clone() } }
-
   pub fn with_dimension() -> Self {
     Self { data: [0.0; SIZE] }
   }
@@ -122,6 +120,10 @@ impl<const SIZE: usize> Neg for &Tuple<SIZE> {
 
     result
   }
+}
+
+impl<const SIZE: usize> From<[f64; SIZE]> for Tuple<SIZE> {
+  fn from(data: [f64; SIZE]) -> Self { Self { data: data.clone() } }
 }
 
 #[cfg(test)]

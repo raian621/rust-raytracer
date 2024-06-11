@@ -167,6 +167,20 @@ impl<const ROWS: usize, const COLS: usize> Matrix<ROWS, COLS> {
     }
 
     let mut upper_triangular = self.clone();
+    // ensure the diagonal has non-zero values
+    for i in 0..ROWS {
+      if upper_triangular[i][i] != 0.0 {
+        continue;
+      }
+      for j in i+1..ROWS {
+        if upper_triangular[j][i] == 0.0 {
+          continue;
+        }
+        upper_triangular.data.swap(i, j);
+        break;
+      }
+    }
+
     for row in 1..ROWS {
       for col in 0..row {
         // avoid divide-by-zero errors
@@ -209,13 +223,9 @@ impl<const ROWS: usize, const COLS: usize> Matrix<ROWS, COLS> {
 impl Matrix<4, 4> {
   pub fn translating(x: f64, y: f64, z: f64) -> Self {
     Self::from([
-      // [1.0, 0.0, 0.0, x],
-      // [0.0, 1.0, 0.0, y],
-      // [0.0, 0.0, 1.0, z],
-      // [0.0, 0.0, 0.0, 1.0],
-      [1.0, 0.0,   x, 0.0],
-      [0.0, 1.0,   y, 0.0],
-      [0.0, 0.0,   z, 0.0],
+      [1.0, 0.0, 0.0,   x],
+      [0.0, 1.0, 0.0,   y],
+      [0.0, 0.0, 1.0,   z],
       [0.0, 0.0, 0.0, 1.0],
     ])
   }
@@ -232,7 +242,7 @@ impl Matrix<4, 4> {
   pub fn rotation_x(r: f64) -> Self {
     Self::from([
       [1.0,     0.0,      0.0, 0.0],
-      [0.0, r.cos(), -r.sin(), 0.0],
+      [0.0, r.cos(), -(r.sin()), 0.0],
       [0.0, r.sin(),  r.cos(), 0.0],
       [0.0,     0.0,      0.0, 1.0],
     ])
@@ -240,16 +250,16 @@ impl Matrix<4, 4> {
 
   pub fn rotation_y(r: f64) -> Self {
     Self::from([
-      [r.cos(),  0.0, r.sin(), 0.0],
-      [0.0,      1.0,     0.0, 0.0],
-      [-r.sin(), 0.0, r.cos(), 0.0],
-      [0.0,      0.0,     0.0, 1.0],
+      [ f64::cos(r), 0.0, f64::sin(r), 0.0],
+      [         0.0, 1.0,         0.0, 0.0],
+      [-f64::sin(r), 0.0, f64::cos(r), 0.0],
+      [         0.0, 0.0,         0.0, 1.0],
     ])
   }
 
   pub fn rotation_z(r: f64) -> Self {
     Self::from([
-      [r.cos(), -r.sin(), 0.0, 0.0],
+      [r.cos(), -(r.sin()), 0.0, 0.0],
       [r.sin(),  r.cos(), 0.0, 0.0],
       [0.0,          0.0, 1.0, 0.0],
       [0.0,          0.0, 0.0, 1.0],
@@ -502,12 +512,32 @@ mod tests {
       [0.0, 0.0, 0.0, 1.0]
     ]);
     let inverse = mat.inverse().unwrap();
-    println!("{:?}", inverse);
     let diff = &inverse - &expected;
     for row in 0..inverse.num_rows() {
       for col in 0..inverse.num_cols() {
         assert!(diff[row][col].abs() < 1e-5)
       }
     }
+  }
+
+  #[test]
+  fn test_rotate_y() {
+    let mat = Matrix::rotation_y(2.0);
+    assert_eq!(mat, Matrix::from([
+      [(2.0 as f64).cos(),  0.0, (2.0 as f64).sin(), 0.0],
+      [               0.0,  1.0,                0.0, 0.0],
+      [-(2.0 as f64).sin(), 0.0, (2.0 as f64).cos(), 0.0],
+      [                0.0, 0.0,                0.0, 1.0],
+    ]));
+    
+    let inv = mat.inverse().unwrap();
+    assert_eq!(inv, Matrix::from([
+      [-0.4161468365471424, 0.0,  0.9092974268256817, 0.0],
+      [ 0.0,                1.0,                 0.0, 0.0],
+      [-0.9092974268256817, 0.0, -0.4161468365471424, 0.0],
+      [ 0.0,                0.0,                 0.0, 1.0],
+    ]));
+
+    // assert!(false);
   }
 }

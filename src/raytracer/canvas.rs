@@ -1,23 +1,9 @@
 use std::{fs::File, io::{self, Write}, ops::{Index, IndexMut}};
 
-use crate::lalg::vector::Vector;
+use crate::{lalg::vector::Vector, shapes::color::{Color}};
 
-pub type Color<const SIZE: usize> = Vector<SIZE>;
 pub struct Canvas<const WIDTH: usize, const HEIGHT: usize> { 
-  pub data: [[Color<3>; HEIGHT]; WIDTH]
-}
-
-impl Color<3> {
-  pub fn r(&self) -> f64 { self[0] }
-  pub fn g(&self) -> f64 { self[1] }
-  pub fn b(&self) -> f64 { self[2] }
-}
-
-impl Color<4> {
-  pub fn r(&self) -> f64 { self[0] }
-  pub fn g(&self) -> f64 { self[1] }
-  pub fn b(&self) -> f64 { self[2] }
-  pub fn a(&self) -> f64 { self[3] }
+  pub data: Vec<Vec<Color<3>>>
 }
 
 impl<const WIDTH: usize, const HEIGHT: usize> Canvas<WIDTH, HEIGHT> {
@@ -26,7 +12,7 @@ impl<const WIDTH: usize, const HEIGHT: usize> Canvas<WIDTH, HEIGHT> {
 
   pub fn new() -> Self { 
     Self { 
-      data: [[Color::from([0.0, 0.0, 0.0]); HEIGHT]; WIDTH]
+      data: vec![vec![Color::from([0.0, 0.0, 0.0]); HEIGHT]; WIDTH]
     }
   }
 
@@ -75,13 +61,13 @@ impl<const WIDTH: usize, const HEIGHT: usize> Canvas<WIDTH, HEIGHT> {
 }
 
 impl<const WIDTH: usize, const HEIGHT: usize> Index<usize> for Canvas<WIDTH, HEIGHT> {
-  type Output = [Color<3>; HEIGHT];
+  type Output = Vec<Color<3>>;
 
   fn index(&self, index: usize) -> &Self::Output { &self.data[index] }
 }
 
 impl<const WIDTH: usize, const HEIGHT: usize> IndexMut<usize> for Canvas<WIDTH, HEIGHT> {
-  fn index_mut<'a>(&'a mut self, index: usize) -> &'a mut [Color<3>; HEIGHT] { &mut self.data[index] }
+  fn index_mut(&mut self, index: usize) -> &mut Vec<Color<3>> { &mut self.data[index] }
 }
 
 #[cfg(test)]

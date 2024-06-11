@@ -1,3 +1,3 @@
 pub mod ray;
-pub mod sphere;
-pub mod intersection;
+pub mod point_light;
+pub mod canvas;
